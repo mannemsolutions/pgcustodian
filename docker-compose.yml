@@ -1,0 +1,38 @@
+services:
+  vault:
+    image: hashicorp/vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: pgcustodian
+      #VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - 8200:8200
+  vaultstage:
+    image: hashicorp/vault
+    command:
+      - /host/scripts/vault_server_init.sh
+    environment:
+      VAULT_TOKEN: pgcustodian
+      VAULT_ADDR: 'http://vault:8200'
+    volumes:
+      - ./:/host
+  vaultclient:
+    image: hashicorp/vault
+    command:
+      - /host/scripts/bashrc
+    environment:
+      VAULT_TOKEN: pgcustodian
+      VAULT_ADDR: 'http://vault:8200'
+    volumes:
+      - ./:/host
+  pgcustodian_test:
+    image: golang
+    command:
+      - bash
+      - -c
+      - 'cd /host && make test'
+    volumes:
+      - ./:/host
+  #  pgcustodian:
+  #    build: .
+volumes:
+  vaultcreds:
