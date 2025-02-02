@@ -3,7 +3,9 @@ package vault
 import (
 	"context"
 	"fmt"
+	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	vault "github.com/hashicorp/vault/api"
@@ -95,6 +97,8 @@ func (c *Client) ExportTokenToFile(tokenFile string) error {
 	if c.token == "" {
 		return fmt.Errorf("token is not set")
 	}
+	tokenFile = utils.ResolveHome(tokenFile)
+	utils.MakeTree(filepath.Dir(tokenFile))
 	if err := os.WriteFile(tokenFile, []byte(c.token), 0600); err != nil {
 		return fmt.Errorf("could not write token: %w", err)
 	}

@@ -33,6 +33,9 @@ func loginCommand() *cobra.Command {
 			client.IsWrapped = viper.GetBool("wrapped")
 			client.RoleID = viper.GetString("roleid")
 			client.SecretIDFile = viper.GetString("secretIdFile")
+			if err := client.Connect(); err != nil {
+				log.Panicf("failed to login: %w", err)
+			}
 			tokenFile := viper.GetString("tokenFile")
 			if err := client.ExportTokenToFile(tokenFile); err != nil {
 				log.Panicf("failed to export auth token: %w", err)
@@ -40,52 +43,9 @@ func loginCommand() *cobra.Command {
 
 		},
 	}
-	loginCommand.PersistentFlags().StringP("tokenFile", "T", "~/.vault/token",
-		`tokenFile can be set to a path containing the token for logging into vault.
-		If token is set, tokenFile is unused.
-		If either tokenFile or token are set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN_FILE, and VAULT_TOKE_FILE in that order.`)
-	bindArgument("", "token", loginCommand, []string{"PGC_TOKEN_FILE", "VAULT_TOKEN_FILE"}, "~/.vault/token")
-
-	loginCommand.PersistentFlags().StringP("token", "t", "",
-		`token for logging into vault.
-		If token is set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN, and VAULT_TOKEN in that order.`)
-	bindArgument("", "token", loginCommand, []string{"PGC_TOKEN", "VAULT_TOKEN"}, "")
-
-	loginCommand.PersistentFlags().StringP("roleId", "r", "",
-		`role id for logging into vault.
-		Defaults are derived from PGC_ROLE_ID.`)
-	bindArgument("", "roleId", loginCommand, []string{"PGC_ROLE_ID"}, "")
-
-	loginCommand.PersistentFlags().StringP("secretIdFile", "s", "",
-		`secret id for logging into vault.
-		Defaults are derived from PGC_SECRET_ID_FILE.`)
-	bindArgument("", "secretIdFile", loginCommand, []string{"PGC_SECRET_ID_FILE"}, "")
-
-	loginCommand.PersistentFlags().Uint8P("storeVersion", "v", 2,
-		`version of vault store.`)
-	bindArgument("", "storeVersion", loginCommand, []string{"PGC_STORE_VERSION"}, 2)
-
-	loginCommand.PersistentFlags().StringP("storePath", "p", "",
-		`path to kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "storePath", loginCommand, []string{"PGC_STORE_PATH"}, "")
-
-	loginCommand.PersistentFlags().StringP("secretPath", "P", "",
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretPath", loginCommand, []string{"PGC_SECRET_PATH"}, "")
-
-	loginCommand.PersistentFlags().StringP("secretKey", "k", "",
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretKey", loginCommand, []string{"PGC_SECRET_KEY"}, "")
-
-	loginCommand.PersistentFlags().StringP("encryptedFile", "f", "",
-		`path to file with decrypted version of data.`)
-	bindArgument("", "encryptedFile", loginCommand, []string{"PGC_ENCRYPTED_FILE"}, "")
 
 	var keySize crypt.AESKeyEnum = crypt.AESKeyEnum256
 	loginCommand.PersistentFlags().VarP(&keySize, "aesKeySize", "a", `key size for AES decryption.`)
 	bindArgument("", "aesKeySize", loginCommand, []string{"PGC_AES_KEY_SIZE"}, 16)
-
 	return loginCommand
 }

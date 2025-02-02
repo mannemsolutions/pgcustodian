@@ -1,7 +1,7 @@
 #!/bin/sh
 set -x
-APPROLE_ROLE_ID="$(cat /vaultcreds/approleid)"
+APPROLE_ROLE_ID="$(cat /host/vaultcreds/approleid)"
 export APPROLE_ROLE_ID
-APPROLE_SECRET_ID_FILE=/vaultcreds/approlesecretid
+APPROLE_SECRET_ID_FILE=/host/vaultcreds/approlesecretid
 export APPROLE_SECRET_ID_FILE
 echo "APPROLE_SECRET_ID=$(cat "${APPROLE_SECRET_ID_FILE}")"

@@ -15,24 +15,11 @@ services:
       VAULT_ADDR: 'http://vault:8200'
     volumes:
       - ./:/host
-  vaultclient:
-    image: hashicorp/vault
-    command:
-      - /host/scripts/bashrc
-    environment:
-      VAULT_TOKEN: pgcustodian
-      VAULT_ADDR: 'http://vault:8200'
-    volumes:
-      - ./:/host
   pgcustodian_test:
-    image: golang
-    command:
-      - bash
-      - -c
-      - 'cd /host && make test'
+    build: .
+    command: |
+      /host/scripts/integration_tests.sh
     volumes:
       - ./:/host
-  #  pgcustodian:
-  #    build: .
 volumes:
   vaultcreds:

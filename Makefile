@@ -8,6 +8,10 @@ endif
 .PHONY: all
 all: build
 
+build:
+	mkdir -p bin
+	go build -o ./bin/pgcustodian ./cmd/pgcustodian
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...

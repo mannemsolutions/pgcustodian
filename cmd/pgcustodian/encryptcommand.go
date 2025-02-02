@@ -63,7 +63,7 @@ func encryptCommand() *cobra.Command {
 			if generatedPassword, err = client.GetSecret(secretPath, secretKey); err != nil {
 				generatedPassword = passwordGen.RandomPassword(
 					viper.GetUint("generatedPasswordLength"),
-					viper.GetString("defaultPasswordChars"),
+					viper.GetString("generatedPasswordChars"),
 				)
 				data := map[string]string{
 					secretKey: generatedPassword,
@@ -73,7 +73,7 @@ func encryptCommand() *cobra.Command {
 					return
 				}
 			}
-			encryptionKey := crypt.PasswordToKey(generatedPassword, crypt.AESKeySize256)
+			encryptionKey := crypt.PasswordToKey(generatedPassword, keySize.ToAESKeySize())
 			if written, err := crypt.EncryptToFile(encryptionKey, bufio.NewReader(os.Stdin), outFile); err != nil {
 				log.Panicf("failed to encrypt file %s with secret from vault: %w", err)
 			} else {
@@ -81,60 +81,14 @@ func encryptCommand() *cobra.Command {
 			}
 		},
 	}
-	encryptCommand.PersistentFlags().StringP("tokenFile", "T", "~/.vault/token",
-		`tokenFile can be set to a path containing the token for logging into vault.
-		If token is set, tokenFile is unused.
-		If either tokenFile or token are set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN_FILE, and VAULT_TOKE_FILE in that order.`)
-	bindArgument("", "token", encryptCommand, []string{"PGC_TOKEN_FILE", "VAULT_TOKEN_FILE"}, "~/.vault/token")
-
-	encryptCommand.PersistentFlags().StringP("token", "t", "",
-		`token for logging into vault.
-		If token is set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN, and VAULT_TOKEN in that order.`)
-	bindArgument("", "token", encryptCommand, []string{"PGC_TOKEN", "VAULT_TOKEN"}, "")
-
-	encryptCommand.PersistentFlags().StringP("roleId", "r", "",
-		`role id for logging into vault.
-		Defaults are derived from PGC_ROLE_ID.`)
-	bindArgument("", "roleId", encryptCommand, []string{"PGC_ROLE_ID"}, "")
-
-	encryptCommand.PersistentFlags().StringP("secretIdFile", "s", "",
-		`secret id for logging into vault.
-		Defaults are derived from PGC_SECRET_ID_FILE.`)
-	bindArgument("", "secretIdFile", encryptCommand, []string{"PGC_SECRET_ID_FILE"}, "")
-
-	encryptCommand.PersistentFlags().Uint8P("storeVersion", "v", 2,
-		`version of vault store.`)
-	bindArgument("", "storeVersion", encryptCommand, []string{"PGC_STORE_VERSION"}, 2)
-
-	encryptCommand.PersistentFlags().StringP("storePath", "p", "",
-		`path to kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "storePath", encryptCommand, []string{"PGC_STORE_PATH"}, "")
-
-	encryptCommand.PersistentFlags().StringP("secretPath", "P", "",
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretPath", encryptCommand, []string{"PGC_SECRET_PATH"}, "")
-
-	encryptCommand.PersistentFlags().StringP("secretKey", "k", "",
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretKey", encryptCommand, []string{"PGC_SECRET_KEY"}, "")
-
-	encryptCommand.PersistentFlags().StringP("encryptedFile", "f", "",
-		`path to file with encrypted version of data.`)
-	bindArgument("", "encryptedFile", encryptCommand, []string{"PGC_ENCRYPTED_FILE"}, "")
 
 	encryptCommand.PersistentFlags().IntP("generatedPasswordLength", "l", 16,
 		`length for generated passwords.`)
 	bindArgument("", "generatedPasswordLength", encryptCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
 
-	encryptCommand.PersistentFlags().IntP("generatedPasswordChars", passwordGen.AllBytes, 16,
+	encryptCommand.PersistentFlags().StringP("generatedPasswordChars", "C", passwordGen.AllBytes,
 		`character list for generating passwords.`)
-	bindArgument("", "generatedPasswordLength", encryptCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
-
-	var keySize crypt.AESKeyEnum = crypt.AESKeyEnum256
-	encryptCommand.PersistentFlags().VarP(&keySize, "aesKeySize", "a", `key size for AES encryption.`)
-	bindArgument("", "aesKeySize", encryptCommand, []string{"PGC_AES_KEY_SIZE"}, 16)
+	bindArgument("", "generatedPasswordChars", encryptCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
 
 	return encryptCommand
 }
