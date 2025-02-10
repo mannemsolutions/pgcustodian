@@ -2,11 +2,9 @@
 set -x
 vault auth enable approle
 vault write auth/approle/role/pgcustodian \
-	token_type=batch \
-	secret_id_ttl=10s \
-	token_ttl=20s \
+	token_type=service \
 	token_max_ttl=30s \
-	secret_id_num_uses=4
+	token_num_uses=6
 
 vault policy write user_specific_path_policy /host/scripts/user_specific_path_policy.hcl
 vault write auth/approle/role/pgcustodian policies=user_specific_path_policy

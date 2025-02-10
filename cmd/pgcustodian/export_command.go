@@ -28,7 +28,7 @@ func exportCommand() *cobra.Command {
 		Long: `Use this command to export the key to an encrypted file for backup purposes.
 		Intention is not to `,
 		Run: func(cmd *cobra.Command, args []string) {
-			enableDebug(viper.GetInt("verbose") > 0)
+			setVerbosity(viper.GetInt("verbose"))
 			inFile := viper.GetString("encryptedFile")
 			client := vault.NewClient()
 			client.IsWrapped = viper.GetBool("wrapped")
@@ -46,7 +46,7 @@ func exportCommand() *cobra.Command {
 			if generatedPassword, err = client.GetSecret(secretPath, secretKey); err != nil {
 				log.Panicf("failed to get secret from vault: %w", err)
 			}
-			exporKey := crypt.PasswordToKey(generatedPassword, crypt.AESKeySize256)
+			exporKey := crypt.PasswordToKey(generatedPassword, keySize.ToAESKeySize())
 			if read, err := crypt.DecryptFromFile(exporKey, inFile, bufio.NewWriter(os.Stdout)); err != nil {
 				log.Panicf("failed to export file %s with secret from vault: %w", err)
 			} else {

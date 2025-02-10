@@ -27,7 +27,7 @@ func decryptCommand() *cobra.Command {
 		Short: "decrypt file to stdout",
 		Long:  `Use this command to read from file, decrypt and write to a stdout.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			enableDebug(viper.GetInt("verbose") > 0)
+			setVerbosity(viper.GetInt("verbose"))
 			inFile := viper.GetString("encryptedFile")
 			client := vault.NewClient()
 			client.IsWrapped = viper.GetBool("wrapped")

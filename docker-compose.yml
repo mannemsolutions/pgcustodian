@@ -3,7 +3,6 @@ services:
     image: hashicorp/vault
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: pgcustodian
-      #VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     ports:
       - 8200:8200
   vaultstage:
@@ -15,11 +14,18 @@ services:
       VAULT_ADDR: 'http://vault:8200'
     volumes:
       - ./:/host
-  pgcustodian_test:
+  pgcustodian_integration_tests:
     build: .
     command: |
       /host/scripts/integration_tests.sh
+    #command: |
+    #  sh -c "while true; do sleep 10; done"
     volumes:
       - ./:/host
-volumes:
-  vaultcreds:
+    environment:
+      VAULT_ADDR: 'http://vault:8200'
+      PGC_TOKEN_FILE: ~/.vault/token
+      PGC_STORE_PATH: secret
+      PGC_SECRET_PATH: pgcustodian/integration
+      PGC_SECRET_KEY: key
+      PGC_ENCRYPTED_FILE: /tmp/pgcustodian

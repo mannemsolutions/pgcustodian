@@ -45,7 +45,7 @@ func encryptCommand() *cobra.Command {
 		Long: `Use this command to read from stdin, encrypt and write to a file.
 		  (If no key exists in vault, it will be generated and written before using it.)`,
 		Run: func(cmd *cobra.Command, args []string) {
-			enableDebug(viper.GetInt("verbose") > 0)
+			setVerbosity(viper.GetInt("verbose"))
 			outFile := viper.GetString("encryptedFile")
 			client := vault.NewClient()
 			client.IsWrapped = viper.GetBool("wrapped")
@@ -69,7 +69,7 @@ func encryptCommand() *cobra.Command {
 					secretKey: generatedPassword,
 				}
 				if err = client.PatchSecret(secretPath, data); err != nil {
-					log.Errorf("unable to patch generated key: %w", err)
+					log.Panicf("unable to patch generated key: %w", err)
 					return
 				}
 			}
@@ -77,7 +77,7 @@ func encryptCommand() *cobra.Command {
 			if written, err := crypt.EncryptToFile(encryptionKey, bufio.NewReader(os.Stdin), outFile); err != nil {
 				log.Panicf("failed to encrypt file %s with secret from vault: %w", err)
 			} else {
-				log.Infof("succesfully encrypted data from stdin with secret from vault and written %d bytes to %s", written, outFile)
+				log.Debugf("succesfully encrypted data from stdin with secret from vault and written %d bytes to %s", written, outFile)
 			}
 		},
 	}

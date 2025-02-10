@@ -1,7 +1,5 @@
 name: CI run on PR
 on:
-  # TODO: Remove this once compleded
-  push:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -74,8 +72,8 @@ jobs:
           version: v1.60.3
           args: --verbose
 
-  unit-test:
-    name: Run unit tests
+  tests:
+    name: Run unit- and integration tests
     runs-on: ubuntu-22.04
     if: ${{ needs.codechanges.outputs.backend == 'true' && github.event.pull_request.draft == false}}
     needs:
@@ -103,7 +101,10 @@ jobs:
         id: staged
         run: |
           docker-compose up vaultstage --exit-code-from vaultstage
-      - name: Test
+      - name: Integratin tests
+        run: |
+          docker-compose up pgcustodian_integration_tests --exit-code-from pgcustodian_integration_tests
+      - name: Unittests
         run: |
           export PGC_SECRET_ID_FILE=$PWD/vaultcreds/approlesecretid
           export PGC_ROLE_ID=$(cat vaultcreds/approleid)

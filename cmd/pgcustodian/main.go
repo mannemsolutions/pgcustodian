@@ -68,7 +68,7 @@ func createApp() *cobra.Command {
 	bindArgument("", "verbose", rootCmd, []string{"PGC_VERBOSE"}, "0")
 
 	rootCmd.PersistentFlags().StringP("cfgFile", "c", "", "config file (default is $HOME/.pgcustodian.yaml)")
-	bindArgument("", "cfgFile", rootCmd, []string{"PGCCFG"}, filepath.Join(currentUser.HomeDir, ".pgcustodian.yaml"))
+	bindArgument("", "cfgFile", rootCmd, []string{"PGC_CFG"}, filepath.Join(currentUser.HomeDir, ".pgcustodian.yaml"))
 	viper.AddConfigPath(viper.GetString("cfgFile"))
 	err = viper.ReadInConfig()
 	if err == nil {
@@ -104,7 +104,7 @@ func createApp() *cobra.Command {
 
 	rootCmd.PersistentFlags().StringP("storePath", "p", "",
 		`path to kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "storePath", rootCmd, []string{"PGC_STORE_PATH"}, "")
+	bindArgument("", "storePath", rootCmd, []string{"PGC_STORE_PATH"}, "secret")
 
 	rootCmd.PersistentFlags().StringP("secretPath", "P", "",
 		`path in kv1 or kv2 store where secrets are held.`)

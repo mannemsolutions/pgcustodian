@@ -7,6 +7,7 @@ path "secret/data/pgcustodian/*" {
   capabilities = ["create", "update", "patch", "read", "delete"]
 }
 
+
 path "secret/metadata/pgcustodian/*" {
   capabilities = ["list"]
 }

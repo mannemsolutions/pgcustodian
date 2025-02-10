@@ -168,18 +168,18 @@ func TestSetGetPatchSecret(t *testing.T) {
 
 		getSecret, err := client.GetSecret(secretPath, key1)
 		assert.NoError(t, err, "Getting a secret should succeed")
-		assert.Equal(t, value1, getSecret, "Getting a secret should succeed")
+		assert.Equal(t, value1, getSecret, "Secret should be what was stored")
 
 		patchedSecrets := map[string]string{
 			key1: patchedValue,
 		}
 
 		err = client.PatchSecret(secretPath, patchedSecrets)
-		assert.NoError(t, err, "Getting a secret should succeed")
+		assert.NoError(t, err, "Patching secret should succeed")
 
 		getPatchedSecret, err := client.GetSecret(secretPath, key1)
 		assert.NoError(t, err, "Getting a secret should succeed")
-		assert.Equal(t, patchedValue, getPatchedSecret, "Getting a secret should succeed")
+		assert.Equal(t, patchedValue, getPatchedSecret, "Secret should be what was patched")
 
 	}
 }

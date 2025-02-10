@@ -93,14 +93,16 @@ func (c *Client) SetTokenFromFile(tokenFile string) {
 }
 
 // ExportTokenToFile is a convenience function to export the token to a file
-func (c *Client) ExportTokenToFile(tokenFile string) error {
+func (c *Client) ExportTokenToFile(tokenFile string) (err error) {
 	if c.token == "" {
 		return fmt.Errorf("token is not set")
 	}
 	tokenFile = utils.ResolveHome(tokenFile)
-	utils.MakeTree(filepath.Dir(tokenFile))
-	if err := os.WriteFile(tokenFile, []byte(c.token), 0600); err != nil {
-		return fmt.Errorf("could not write token: %w", err)
+	if err = utils.MakeTree(filepath.Dir(tokenFile)); err != nil {
+		return fmt.Errorf("failed to create folders: %w", err)
+	}
+	if err = os.WriteFile(tokenFile, []byte(c.token), 0600); err != nil {
+		return fmt.Errorf("failed to write token: %w", err)
 	}
 	return nil
 }
@@ -156,10 +158,11 @@ func (c *Client) PatchSecret(secretPath string, secretKeyValues map[string]strin
 	var data map[string]interface{}
 	var secret *vault.KVSecret
 	if c.StoreVersion == 2 {
-		data = make(map[string]interface{})
-	} else if secret, err = c.client.KVv1(c.StorePath).Get(context.Background(), secretPath); err != nil {
-		data = make(map[string]interface{})
-	} else if secret.Data == nil {
+		secret, err = c.client.KVv2(c.StorePath).Get(context.Background(), secretPath)
+	} else {
+		secret, err = c.client.KVv1(c.StorePath).Get(context.Background(), secretPath)
+	}
+	if err != nil {
 		data = make(map[string]interface{})
 	} else {
 		data = secret.Data
@@ -169,7 +172,7 @@ func (c *Client) PatchSecret(secretPath string, secretKeyValues map[string]strin
 		data[k] = v
 	}
 	if c.StoreVersion == 2 {
-		_, err = c.client.KVv2(c.StorePath).Patch(context.Background(), secretPath, data)
+		_, err = c.client.KVv2(c.StorePath).Put(context.Background(), secretPath, data)
 	} else {
 		err = c.client.KVv1(c.StorePath).Put(context.Background(), secretPath, data)
 	}

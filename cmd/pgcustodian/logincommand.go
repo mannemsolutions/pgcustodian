@@ -28,7 +28,7 @@ func loginCommand() *cobra.Command {
 		can be delivered to the low privileged user for onetime authentication,
 		thus resulting in separation between credentials and service utilizing the key.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			enableDebug(viper.GetInt("verbose") > 0)
+			setVerbosity(viper.GetInt("verbose"))
 			client := vault.NewClient()
 			client.IsWrapped = viper.GetBool("wrapped")
 			client.RoleID = viper.GetString("roleid")

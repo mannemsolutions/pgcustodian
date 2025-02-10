@@ -25,7 +25,7 @@ func initLogger(logFilePath string) {
 
 	// High-priority output should also go to standard error, and low-priority
 	// output should also go to standard out.
-	consoleDebugging := zapcore.Lock(os.Stdout)
+	consoleDebugging := zapcore.Lock(os.Stderr)
 	consoleErrors := zapcore.Lock(os.Stderr)
 
 	// Optimize the Kafka output for machine consumption and the console output
@@ -62,9 +62,7 @@ func initLogger(logFilePath string) {
 	log = zap.New(core).Sugar()
 }
 
-func enableDebug(debug bool) {
-	if debug {
-		atom.SetLevel(zap.DebugLevel)
-	}
+func setVerbosity(verbosity int) {
+	atom.SetLevel(zap.ErrorLevel - zapcore.Level(verbosity))
 	log.Debug("Debug logging enabled")
 }

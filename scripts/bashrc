@@ -1,7 +1,6 @@
 #!/bin/sh
 set -x
-APPROLE_ROLE_ID="$(cat /host/vaultcreds/approleid)"
-export APPROLE_ROLE_ID
-APPROLE_SECRET_ID_FILE=/host/vaultcreds/approlesecretid
-export APPROLE_SECRET_ID_FILE
-echo "APPROLE_SECRET_ID=$(cat "${APPROLE_SECRET_ID_FILE}")"
+PGC_ROLE_ID="$(cat /host/vaultcreds/approleid)"
+PGC_SECRET_ID_FILE=/host/vaultcreds/approlesecretid
+export PGC_ROLE_ID PGC_SECRET_ID_FILE VAULT_ADDR
+echo "PGC_SECRET_ID=$(cat "${PGC_SECRET_ID_FILE}")"

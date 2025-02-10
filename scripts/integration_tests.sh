@@ -3,5 +3,5 @@ set -e
 cd "$(dirname "$0")/.."
 . ./scripts/bashrc
 pgcustodian login
-pgcustodian encrypt
+echo 1234HvHv | pgcustodian encrypt
 pgcustodian decrypt

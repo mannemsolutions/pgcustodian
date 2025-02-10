@@ -27,7 +27,7 @@ func cycleCommand() *cobra.Command {
 		Short: "cycle encryption key and file",
 		Long:  `Use this command to generate a new key/file from previous key/file.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			enableDebug(viper.GetInt("verbose") > 0)
+			setVerbosity(viper.GetInt("verbose"))
 			log.Panic("we need to thoroughly think through the cycling part")
 			inFile := viper.GetString("encryptedFile")
 			client := vault.NewClient()
