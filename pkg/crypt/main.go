@@ -41,7 +41,7 @@ func StreamEncrypt(key []byte, input *bufio.Reader, output *bufio.Writer) (int64
 		written += int64(ivWritten)
 	}
 
-	stream := cipher.NewCFBEncrypter(block, iv[:])
+	stream := cipher.NewCTR(block, iv[:])
 
 	reader := &cipher.StreamReader{S: stream, R: input}
 
@@ -90,7 +90,7 @@ func StreamDecrypt(key []byte, input *bufio.Reader, output *bufio.Writer) (int64
 	} else {
 		read += int64(ivRead)
 	}
-	stream := cipher.NewCFBDecrypter(block, iv[:])
+	stream := cipher.NewCTR(block, iv[:])
 
 	reader := &cipher.StreamReader{S: stream, R: input}
 	// Copy the input to the output stream, decrypting as we go.
