@@ -1,4 +1,4 @@
-package crypt
+package symmetric
 
 /*
 AESKeyEnum is a string enum that is externally used as a cobra Flag enum.

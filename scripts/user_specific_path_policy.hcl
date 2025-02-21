@@ -1,4 +1,3 @@
-#!/bin/bash
 path "kv/pgcustodian/*" {
   capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }

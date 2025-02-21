@@ -8,10 +8,12 @@ import (
 )
 
 const (
-	LetterBytes  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	SpecialBytes = "!@#$%^&*()_+-=[]{}\\|;':\",.<>/?`~"
-	NumBytes     = "0123456789"
-	AllBytes     = LetterBytes + SpecialBytes + NumBytes
+	LowercaseBytes = "abcdefghijklmnopqrstuvwxyz"
+	UppercaseBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	LetterBytes    = LowercaseBytes + UppercaseBytes
+	SpecialBytes   = "!@#$%^&*()_+-=[]{}\\|;':\",.<>/?`~"
+	NumBytes       = "0123456789"
+	AllBytes       = LetterBytes + SpecialBytes + NumBytes
 )
 
 func RandomPassword(length uint, chars string) string {
