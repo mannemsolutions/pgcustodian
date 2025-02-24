@@ -16,7 +16,7 @@ before:
     - go generate ./...
 
 builds:
-  - id: pgfga
+  - id: pgcustodian
     env:
       - CGO_ENABLED=0
     goos:
@@ -29,10 +29,10 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    main: ./cmd/pgfga
-    binary: pgfga
+    main: ./cmd/pgcustodian
+    binary: pgcustodian
     ldflags:
-      - -s -w -X "internal.version.Version={{.Version}}"
+      - -s -w -X "internal.appVersion={{.Version}}"
 
 archives:
   - format: tar.gz
