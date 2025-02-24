@@ -1,6 +1,11 @@
 #!/bin/sh
-set -x
-PGC_ROLE_ID="$(cat /host/vaultcreds/approleid)"
-PGC_SECRET_ID_FILE=/host/vaultcreds/approlesecretid
-export PGC_ROLE_ID PGC_SECRET_ID_FILE VAULT_ADDR
-echo "PGC_SECRET_ID=$(cat "${PGC_SECRET_ID_FILE}")"
+set -ex
+
+PGC_TOKEN_FILE=${PGC_ROOT_TOKEN_FILE:-~/.pgcustodian/token}
+PGC_ROOT_TOKEN_FILE=${PGC_ROOT_TOKEN_FILE:-~/.pgcustodian/roottoken}
+PGC_ROLE_ID_FILE=${PGC_ROLE_ID_FILE:-~/.pgcustodian/role_id}
+PGC_SECRET_ID_FILE=${PGC_SECRET_ID_FILE:-~/.pgcustodian/secret_id}
+
+PGC_ROLE_ID="$(cat "${PGC_ROLE_ID_FILE}")"
+export PGC_ROLE_ID PGC_SECRET_ID_FILE PGC_ROOT_TOKEN_FILE PGC_TOKEN_FILE
+grep -rn . ~/.pgcustodian/*
