@@ -1,10 +1,11 @@
-package crypt
+package symmetric
 
 /*
 
  */
 import (
 	"bufio"
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -101,6 +102,34 @@ func StreamDecrypt(key []byte, input *bufio.Reader, output *bufio.Writer) (int64
 		read += decryptedRead
 		return read, nil
 	}
+}
+
+func Cycle(oldKey []byte, inFile string, newKey []byte, outFile string) error {
+	buffer := bytes.NewBuffer([]byte{})
+	type returnValues struct {
+		count int64
+		err   error
+	}
+	c := make(chan returnValues)
+
+	go func() {
+		count, err := EncryptToFile(newKey, bufio.NewReader(buffer), outFile)
+		c <- returnValues{count, err}
+	}()
+
+	count, err := DecryptFromFile(oldKey, inFile, bufio.NewWriter(buffer))
+	if err != nil {
+		return fmt.Errorf("error while decrypting: %w", err)
+	}
+	encryptResults := <-c
+	if encryptResults.err != nil {
+		return fmt.Errorf("error while encrypting: %w", err)
+	}
+	if count != encryptResults.count {
+		return fmt.Errorf("%d was decrypted, but %d was encrypted", count, encryptResults.count)
+	}
+
+	return nil
 }
 
 func DecryptFromFile(key []byte, inFile string, output *bufio.Writer) (int64, error) {

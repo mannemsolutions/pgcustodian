@@ -44,3 +44,7 @@ install-go-test-coverage:
 check-coverage: install-go-test-coverage
 	go test $$(go list ./... | grep -v /e2e) -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 	${GOBIN}/go-test-coverage --config=./.testcoverage.yml
+
+.PHONY: integration-tests
+integration-tests: build
+	./scripts/integration_tests.sh

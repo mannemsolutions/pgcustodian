@@ -21,10 +21,18 @@ const (
 	// Should be an integer in a string
 	envStoreVersion = "PGC_STORE_VERSION"
 	// Default version of the kv store KVv1 or KVv2
-	defaultStoreVersion uint8 = 2
-	// Default path of the kv store
-	defaultStore = "secret"
+	DefaultStoreVersion uint8 = 2
 )
+
+// Default path of the kv store
+func DefaultStore(version uint8) string {
+	if version == 1 {
+		return "kv"
+	} else if version == 2 {
+		return "secret"
+	}
+	return DefaultStore(DefaultStoreVersion)
+}
 
 type Client struct {
 	// internal pointer to the client used to connect, get, set and update in vault
@@ -34,7 +42,7 @@ type Client struct {
 	// roleid to be used. Gathered from envSecretIDFile by NewCrypt()
 	RoleID string
 	// file to read secret ID from. Gathered from envRoleID by NewCrypt()
-	SecretIDFile string
+	SecretID auth.SecretID
 	// should the Secret ID be response wrapped
 	IsWrapped bool
 	// environment variable to set the version of the kv store KVv1 or KVv2
@@ -44,9 +52,9 @@ type Client struct {
 	StorePath string
 }
 
-// storeVersion is a convenience fucntion to get the store version from env vars
+// storeVersion is a convenience function to get the store version from env vars
 func storeVersion() (v uint8) {
-	v = defaultStoreVersion
+	v = DefaultStoreVersion
 	if sVersion := os.Getenv(envStoreVersion); sVersion == "" {
 		return
 	} else if iVersion, err := strconv.Atoi(sVersion); err != nil {
@@ -65,10 +73,12 @@ func NewClient() *Client {
 		nil,
 		"",
 		os.Getenv(envRoleID),
-		os.Getenv(envSecretIDFile),
+		auth.SecretID{
+			FromFile: os.Getenv(envSecretIDFile),
+		},
 		false,
 		storeVersion(),
-		defaultStore,
+		DefaultStore(storeVersion()),
 	}
 }
 
@@ -78,6 +88,18 @@ func (c *Client) SetToken(token string) {
 		return
 	}
 	c.token = token
+}
+
+// SetTokenFromFile is a convenience function to set the token form file (if not set already)
+func (c *Client) SetRoleIdFromFile(roleIdFile string) {
+	if c.RoleID != "" {
+		return
+	}
+	if dat, err := os.ReadFile(roleIdFile); err != nil {
+		return
+	} else {
+		c.RoleID = string(dat)
+	}
 }
 
 // SetTokenFromFile is a convenience function to set the token form file (if not set already)
@@ -123,15 +145,13 @@ func (c *Client) Connect() error {
 		return nil
 	}
 
-	secretIDFile := &auth.SecretID{FromFile: c.SecretIDFile}
-
 	var authOpts []auth.LoginOption
 	if c.IsWrapped {
 		authOpts = append(authOpts, auth.WithWrappingToken())
 	}
 	appRoleAuth, err := auth.NewAppRoleAuth(
 		c.RoleID,
-		secretIDFile,
+		&c.SecretID,
 		authOpts...,
 	)
 	if err != nil {
@@ -148,84 +168,4 @@ func (c *Client) Connect() error {
 	c.client = client
 	c.token = client.Token()
 	return nil
-}
-
-// PatchSecret will patch a secret in the kv store by appending and/or updating values
-func (c *Client) PatchSecret(secretPath string, secretKeyValues map[string]string) (err error) {
-	if err = c.Connect(); err != nil {
-		return fmt.Errorf("unable to connect: %w", err)
-	}
-	var data map[string]interface{}
-	var secret *vault.KVSecret
-	if c.StoreVersion == 2 {
-		secret, err = c.client.KVv2(c.StorePath).Get(context.Background(), secretPath)
-	} else {
-		secret, err = c.client.KVv1(c.StorePath).Get(context.Background(), secretPath)
-	}
-	if err != nil {
-		data = make(map[string]interface{})
-	} else {
-		data = secret.Data
-	}
-
-	for k, v := range secretKeyValues {
-		data[k] = v
-	}
-	if c.StoreVersion == 2 {
-		_, err = c.client.KVv2(c.StorePath).Put(context.Background(), secretPath, data)
-	} else {
-		err = c.client.KVv1(c.StorePath).Put(context.Background(), secretPath, data)
-	}
-	if err != nil {
-		return fmt.Errorf("unable to write secret: %w", err)
-	}
-
-	return nil
-}
-
-// SetSecret will write a secret to the kv store
-func (c *Client) SetSecret(secretPath string, secretKeyValues map[string]string) (err error) {
-	if err = c.Connect(); err != nil {
-		return fmt.Errorf("unable to connect: %w", err)
-	}
-
-	data := make(map[string]interface{})
-	for k, v := range secretKeyValues {
-		data[k] = v
-
-	}
-	if c.StoreVersion == 2 {
-		_, err = c.client.KVv2(c.StorePath).Put(context.Background(), secretPath, data)
-	} else {
-		err = c.client.KVv1(c.StorePath).Put(context.Background(), secretPath, data)
-	}
-	if err != nil {
-		return fmt.Errorf("unable to write secret: %w", err)
-	}
-
-	return nil
-}
-
-// GetSecret will get a secret from the kv store
-func (c *Client) GetSecret(secretPath string, secretKey string) (value string, err error) {
-	if err = c.Connect(); err != nil {
-		return "", fmt.Errorf("unable to connect: %w", err)
-	}
-
-	var secret *vault.KVSecret
-	if c.StoreVersion == 2 {
-		secret, err = c.client.KVv2(c.StorePath).Get(context.Background(), secretPath)
-	} else {
-		secret, err = c.client.KVv1(c.StorePath).Get(context.Background(), secretPath)
-	}
-	if err != nil {
-		return "", fmt.Errorf("unable to read secret: %w", err)
-	}
-
-	value, ok := secret.Data[secretKey].(string)
-	if !ok {
-		return "", fmt.Errorf("value type assertion failed: %T %#v", secret.Data[secretKey], secret.Data[secretKey])
-	}
-
-	return value, nil
 }

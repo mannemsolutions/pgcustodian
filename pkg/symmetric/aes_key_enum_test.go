@@ -1,7 +1,7 @@
-package crypt_test
+package symmetric_test
 
 import (
-	"mannemsolutions/pgcustodian/pkg/crypt"
+	crypt "mannemsolutions/pgcustodian/pkg/symmetric"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

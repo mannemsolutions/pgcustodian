@@ -72,8 +72,8 @@ jobs:
           version: v1.60.3
           args: --verbose
 
-  tests:
-    name: Run unit- and integration tests
+  integrationtests:
+    name: Run integration tests
     runs-on: ubuntu-22.04
     if: ${{ needs.codechanges.outputs.backend == 'true' && github.event.pull_request.draft == false}}
     needs:
@@ -97,18 +97,41 @@ jobs:
       - name: vault
         run: |
           docker-compose up -d vault
-      - name: stage
-        id: staged
+      - name: Integration tests
         run: |
-          docker-compose up vaultstage --exit-code-from vaultstage
-      - name: Integratin tests
+          make integration-tests
+        env:
+          PGC_TEST_ROOT_TOKEN: pgcustodian
+          VAULT_ADDR: http://127.0.0.1:8200
+
+  unittests:
+    name: Run unittests
+    runs-on: ubuntu-22.04
+    if: ${{ needs.codechanges.outputs.backend == 'true' && github.event.pull_request.draft == false}}
+    needs:
+      - codechanges
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Golang
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      - name: update to docker-compose v2
         run: |
-          docker-compose up pgcustodian_integration_tests --exit-code-from pgcustodian_integration_tests
-      - name: Unittests
+          sudo apt-get install -y curl
+          sudo curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+      - name: compose
         run: |
-          export PGC_SECRET_ID_FILE=$PWD/vaultcreds/approlesecretid
-          export PGC_ROLE_ID=$(cat vaultcreds/approleid)
+          docker-compose --version
+          echo $PGVERSION
+      - name: vault
+        run: |
+          docker-compose up -d vault
+      - name: Integration tests
+        run: |
           make check-coverage
         env:
+          PGC_TEST_ROOT_TOKEN: pgcustodian
           VAULT_ADDR: http://127.0.0.1:8200
-          VAULT_TOKEN: pgcustodian

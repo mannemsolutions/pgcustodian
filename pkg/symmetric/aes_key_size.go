@@ -1,4 +1,4 @@
-package crypt
+package symmetric
 
 import "fmt"
 
