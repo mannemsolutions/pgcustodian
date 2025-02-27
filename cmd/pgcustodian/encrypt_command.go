@@ -62,13 +62,5 @@ func encryptCommand() *cobra.Command {
 		},
 	}
 
-	encryptCommand.PersistentFlags().IntP("generatedPasswordLength", "l", 16,
-		`length for generated passwords.`)
-	bindArgument("", "generatedPasswordLength", encryptCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
-
-	encryptCommand.PersistentFlags().StringP("generatedPasswordChars", "C", passwordGen.AllBytes,
-		`character list for generating passwords.`)
-	bindArgument("", "generatedPasswordChars", encryptCommand, []string{"PGC_GENERATED_PASSWORD_CHARS"}, 16)
-
 	return encryptCommand
 }

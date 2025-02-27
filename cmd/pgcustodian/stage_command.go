@@ -128,18 +128,5 @@ func stageCommand() *cobra.Command {
 		},
 	}
 
-	stageCommand.PersistentFlags().StringP("customPolicyFile", "C", customPolicyFile,
-		`File with custom policy to be applied 
-		(defaults allow on kv/pgcustodian, secret/data/pgcustodian and secret/metadata/pgcustodian).`)
-	bindArgument("", "customPolicyFile", stageCommand, []string{customPolicyEnvVar}, customPolicyFile)
-
-	hostName, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-	stageCommand.PersistentFlags().StringP("roleName", "n", hostName,
-		`Role name to be used.`)
-	bindArgument("", "roleName", stageCommand, []string{roleNameEnvVar}, hostName)
-
 	return stageCommand
 }

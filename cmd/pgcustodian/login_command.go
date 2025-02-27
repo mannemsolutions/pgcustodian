@@ -1,7 +1,6 @@
 package main
 
 import (
-	"mannemsolutions/pgcustodian/pkg/symmetric"
 	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 
@@ -43,8 +42,5 @@ thus resulting in separation between credentials and service utilizing the key.`
 		},
 	}
 
-	var keySize symmetric.AESKeyEnum = symmetric.AESKeyEnum256
-	loginCommand.PersistentFlags().VarP(&keySize, "aesKeySize", "a", `key size for AES decryption.`)
-	bindArgument("", "aesKeySize", loginCommand, []string{"PGC_AES_KEY_SIZE"}, 16)
 	return loginCommand
 }

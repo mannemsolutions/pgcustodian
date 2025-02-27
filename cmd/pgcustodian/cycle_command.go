@@ -5,7 +5,6 @@ import (
 	passwordGen "mannemsolutions/pgcustodian/pkg/pwgen"
 	"mannemsolutions/pgcustodian/pkg/shred"
 	"mannemsolutions/pgcustodian/pkg/symmetric"
-	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,7 +31,7 @@ func cycleCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			setVerbosity(viper.GetInt("verbose"))
-			encryptedFile := utils.ResolveHome(viper.GetString("encryptedFile"))
+			encryptedFile := viper.GetString("encryptedFile")
 			if encryptedFile == "" {
 				log.Panic("parameter encryptedFile is mandatory for cycle")
 			}
@@ -125,8 +124,8 @@ func cycleCommand() *cobra.Command {
 			log.Infof("new password updated in vault.")
 
 			//if public key is set, encrypt new password with public key and write to backup file
-			publicKeyPath := utils.ResolveHome(viper.GetString("publicKey"))
-			backupFilePath := utils.ResolveHome(viper.GetString("backupFile"))
+			publicKeyPath := viper.GetString("publicKey")
+			backupFilePath := viper.GetString("backupFile")
 			if key, err := asymmetric.ReadPublicKeyFromFile(publicKeyPath); err != nil {
 				log.Errorf("failed to read private key: %w", err)
 				log.Info("password backup feature disabled")
@@ -148,17 +147,6 @@ func cycleCommand() *cobra.Command {
 			}
 		},
 	}
-
-	cycleCommand.PersistentFlags().IntP("generatedPasswordLength", "l", 16,
-		`length for generated passwords.`)
-	bindArgument("", "generatedPasswordLength", cycleCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
-
-	cycleCommand.PersistentFlags().StringP("generatedPasswordChars", "C", passwordGen.AllBytes,
-		`character list for generating passwords.`)
-	bindArgument("", "generatedPasswordChars", cycleCommand, []string{"PGC_GENERATED_PASSWORD_CHARS"}, 16)
-
-	cycleCommand.PersistentFlags().BoolP("shred", "x", true, `shred the tmp files`)
-	bindArgument("", "shred", cycleCommand, []string{"PGC_SHRED"}, true)
 
 	return cycleCommand
 }
