@@ -2,23 +2,13 @@ package main
 
 import (
 	"mannemsolutions/pgcustodian/pkg/asymmetric"
-	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-/*
-generate (pg_ctl start):
-  env:
-    file path
-	key path
-	vault token
-  stdout: pg generateed something from generatee
-*/
-
 func generateCommand() *cobra.Command {
+	var generateArgs args
 	generateCommand := &cobra.Command{
 		Use:   "generate",
 		Short: "generate asymmetric keys which can be used to backup the secret",
@@ -29,8 +19,8 @@ Always make sure you shred the private key rather then removing it once safely m
 If the public key is supplied, the encryption key is encrypted and stored next to the encrypted data.
 Should the primary storage (Vault) be lost the encryption key can be recovered with the private key.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			setVerbosity(viper.GetInt("verbose"))
-			privateKeyPath := utils.ResolveHome(viper.GetString("privateKey"))
+			setVerbosity(generateArgs.GetInt("verbose"))
+			privateKeyPath := generateArgs.GetString("privateKeyPath")
 			if privateKeyPath == "" {
 				if privateKeyFile, err := os.CreateTemp("", "private*.pem"); err != nil {
 					log.Panicf("failed to create tempfile for private key: %w", err)
@@ -43,7 +33,7 @@ Should the primary storage (Vault) be lost the encryption key can be recovered w
 				log.Panicf("failed to generate private key: %w", err)
 			}
 			log.Infof("succesfully generated and stored private key as %s", privateKeyPath)
-			publicKeyPath := utils.ResolveHome(viper.GetString("publicKey"))
+			publicKeyPath := generateArgs.GetString("publicKeyPath")
 			if publicKeyPath == "" {
 				if publicKeyFile, err := os.CreateTemp("", "public*.pem"); err != nil {
 					log.Panicf("failed to create tempfile for public key: %w", err)
@@ -58,5 +48,9 @@ Should the primary storage (Vault) be lost the encryption key can be recovered w
 		},
 	}
 
+	generateArgs = allArgs.commandArgs(generateCommand, append(globalArgs,
+		"privateKeyPath",
+		"publicKeyPath",
+	))
 	return generateCommand
 }

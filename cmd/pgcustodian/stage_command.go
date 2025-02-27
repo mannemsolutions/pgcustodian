@@ -7,15 +7,10 @@ import (
 
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
 	policyName         = "pgcustodian"
-	customPolicyFile   = "~/.pgcustodian/custom_policy.hcl"
-	customPolicyEnvVar = "PGC_CUSTOM_POLICY_FILE"
-	roleNameEnvVar     = "PGC_ROLE_NAME"
-	roleIdFileEnvVar   = "PGC_ROLE_ID_FILE"
 	defaultPermissions = 0o600
 
 	defaultPolicyRules = `path "kv/pgcustodian/*" {
@@ -33,16 +28,17 @@ path "secret/metadata/pgcustodian/*" {
 )
 
 func stageCommand() *cobra.Command {
+	var stageArgs args
 	stageCommand := &cobra.Command{
 		Use:   "stage",
 		Short: "stage hashicorp vault for pgcustodian usage",
 		Long:  `Use this command to setup hashicorp vault so that it is ready to be used by pgcustodian.`,
 		Run: func(cmd *cobra.Command, args []string) {
 
-			setVerbosity(viper.GetInt("verbose"))
+			setVerbosity(stageArgs.GetInt("verbose"))
 
 			//retrieve password from vault
-			client := setupClient()
+			client := stageArgs.GetClient()
 			if client.StoreVersion == 1 {
 				err := client.EnableSecretStore(client.StorePath+"/",
 					&api.MountInput{
@@ -59,7 +55,7 @@ func stageCommand() *cobra.Command {
 			}
 
 			policyRules := defaultPolicyRules
-			data, err := os.ReadFile(utils.ResolveHome(viper.GetString(customPolicyFile)))
+			data, err := os.ReadFile(stageArgs.GetString("customPolicyFile"))
 			if err == nil {
 				policyRules = string(data)
 			}
@@ -75,7 +71,7 @@ func stageCommand() *cobra.Command {
 			}
 			log.Info("enabling app-roles succeeded")
 
-			appRoleName := viper.GetString("roleName")
+			appRoleName := stageArgs.GetString("roleName")
 			err = client.AddAppRole(
 				appRoleName,
 				map[string]interface{}{
@@ -90,7 +86,7 @@ func stageCommand() *cobra.Command {
 			}
 			log.Infof("creating app-role %s succeeded", appRoleName)
 
-			roleIdFile := utils.ResolveHome(viper.GetString("roleIdFile"))
+			roleIdFile := stageArgs.GetString("roleIdFile")
 			roleIdDir := path.Dir(roleIdFile)
 			err = utils.MakeTree(roleIdDir)
 			if err != nil {
@@ -98,7 +94,7 @@ func stageCommand() *cobra.Command {
 			}
 			log.Infof("creating directory for role-id %s succeeded", roleIdDir)
 
-			roleName := viper.GetString("roleName")
+			roleName := stageArgs.GetString("roleName")
 			roleId, err := client.GetAppRoleId(roleName)
 			if err != nil {
 				log.Panicf("retrieving app-role-id for %s failed: %w", roleName, err)
@@ -109,14 +105,14 @@ func stageCommand() *cobra.Command {
 			}
 			log.Infof("role-id for %s successfully written to %s", roleName, roleIdFile)
 
-			secretIdFile := utils.ResolveHome(viper.GetString("secretIdFile"))
+			secretIdFile := stageArgs.GetString("secretIdFile")
 			secretIdDir := path.Dir(secretIdFile)
 			err = utils.MakeTree(secretIdDir)
 			if err != nil {
 				log.Panicf("creating directory for secret-id %s failed: %w", secretIdDir, err)
 			}
 			log.Infof("creating directory for secret-id %s succeeded", secretIdDir)
-			secretID, err := client.GetSecretId(viper.GetString("roleName"))
+			secretID, err := client.GetSecretId(stageArgs.GetString("roleName"))
 			if err != nil {
 				log.Panicf("retrieving secret-id for %s failed: %w", roleName, err)
 			}
@@ -128,18 +124,11 @@ func stageCommand() *cobra.Command {
 		},
 	}
 
-	stageCommand.PersistentFlags().StringP("customPolicyFile", "C", customPolicyFile,
-		`File with custom policy to be applied 
-		(defaults allow on kv/pgcustodian, secret/data/pgcustodian and secret/metadata/pgcustodian).`)
-	bindArgument("", "customPolicyFile", stageCommand, []string{customPolicyEnvVar}, customPolicyFile)
-
-	hostName, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-	stageCommand.PersistentFlags().StringP("roleName", "n", hostName,
-		`Role name to be used.`)
-	bindArgument("", "roleName", stageCommand, []string{roleNameEnvVar}, hostName)
-
+	stageArgs = allArgs.commandArgs(stageCommand, append(globalArgs,
+		"customPolicyFile",
+		"roleIdFile",
+		"roleName",
+		"secretIdFile",
+	))
 	return stageCommand
 }

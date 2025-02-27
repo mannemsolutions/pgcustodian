@@ -5,35 +5,34 @@ import (
 	"mannemsolutions/pgcustodian/pkg/asymmetric"
 	passwordGen "mannemsolutions/pgcustodian/pkg/pwgen"
 	"mannemsolutions/pgcustodian/pkg/symmetric"
-	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func encryptCommand() *cobra.Command {
+	var encryptArgs args
 	encryptCommand := &cobra.Command{
 		Use:   "encrypt",
 		Short: "encrypt stdin write to file",
 		Long: `Use this command to read from stdin, encrypt and write to a file.
 (If no key exists in vault, it will be generated and written before using it.)`,
 		Run: func(cmd *cobra.Command, args []string) {
-			setVerbosity(viper.GetInt("verbose"))
-			encryptedFile := utils.ResolveHome(viper.GetString("encryptedFile"))
+			setVerbosity(encryptArgs.GetInt("verbose"))
+			encryptedFile := encryptArgs.GetString("encryptedFile")
 			if encryptedFile == "" {
 				log.Panic("parameter encryptedFile is mandatory for encrypt")
 			}
-			client := setupClient()
+			client := encryptArgs.GetClient()
 
 			var password string
 			var err error
-			secretKey := viper.GetString("secretKey")
-			secretPath := viper.GetString("secretPath")
+			secretKey := encryptArgs.GetString("secretKey")
+			secretPath := encryptArgs.GetString("secretPath")
 			if password, err = client.GetSecret(secretPath, secretKey); err != nil {
 				password = passwordGen.RandomPassword(
-					viper.GetUint("generatedPasswordLength"),
-					viper.GetString("generatedPasswordChars"),
+					encryptArgs.GetUint("generatedPasswordLength"),
+					encryptArgs.GetString("generatedPasswordChars"),
 				)
 				data := map[string]string{
 					secretKey: password,
@@ -42,8 +41,8 @@ func encryptCommand() *cobra.Command {
 					log.Panicf("unable to patch generated key: %w", err)
 				}
 			}
-			publicKeyPath := utils.ResolveHome(viper.GetString("publicKey"))
-			backupFilePath := utils.ResolveHome(viper.GetString("backupFile"))
+			publicKeyPath := encryptArgs.GetString("publicKeyPath")
+			backupFilePath := encryptArgs.GetString("backupFile")
 			if backupFilePath == "" {
 				log.Info("backup and restore of passwords is disabled")
 			} else if key, err := asymmetric.ReadPublicKeyFromFile(publicKeyPath); err != nil {
@@ -61,14 +60,14 @@ func encryptCommand() *cobra.Command {
 			log.Infof("successfully encrypted data from stdin with secret from vault and written %d bytes to %s", written, encryptedFile)
 		},
 	}
-
-	encryptCommand.PersistentFlags().IntP("generatedPasswordLength", "l", 16,
-		`length for generated passwords.`)
-	bindArgument("", "generatedPasswordLength", encryptCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
-
-	encryptCommand.PersistentFlags().StringP("generatedPasswordChars", "C", passwordGen.AllBytes,
-		`character list for generating passwords.`)
-	bindArgument("", "generatedPasswordChars", encryptCommand, []string{"PGC_GENERATED_PASSWORD_CHARS"}, 16)
-
+	encryptArgs = allArgs.commandArgs(encryptCommand, append(globalArgs,
+		"backupFile",
+		"encryptedFile",
+		"generatedPasswordChars",
+		"generatedPasswordLength",
+		"publicKeyPath",
+		"secretKey",
+		"secretPath",
+	))
 	return encryptCommand
 }

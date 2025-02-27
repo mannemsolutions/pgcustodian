@@ -4,22 +4,27 @@ package main
 import (
 	"fmt"
 	"mannemsolutions/pgcustodian/internal"
-	"mannemsolutions/pgcustodian/pkg/symmetric"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const (
-	confDir = "~/.pgcustodian"
-)
-
 var (
-	cfgFile string
-	keySize = symmetric.AESKeyEnum256
+	cfgFile    string
+	globalArgs = []string{
+		"verbose",
+		"cfgFile",
+		"roleId",
+		"roleIdFile",
+		"secretIdFile",
+		"storePath",
+		"storeVersion",
+		"token",
+		"tokenFile",
+		"wrapped",
+	}
 )
 
 // requireSubcommand returns an error if no sub command is provided
@@ -62,84 +67,12 @@ func createApp() *cobra.Command {
 		//SilenceErrors: true,
 		//SilenceUsage: true,
 	}
-	rootCmd.PersistentFlags().CountP("verbose", "v",
-		`Be more verbose in the output.`)
-	bindArgument("", "verbose", rootCmd, []string{"PGC_VERBOSE"}, "0")
 
-	rootCmd.PersistentFlags().StringP("cfgFile", "c", "", fmt.Sprintf("config file (default is %s/config.yaml)", confDir))
-	bindArgument("", "cfgFile", rootCmd, []string{"PGC_CFG"}, filepath.Join(confDir, "config.yaml"))
 	viper.AddConfigPath(viper.GetString("cfgFile"))
 	err := viper.ReadInConfig()
 	if err == nil {
 		fmt.Printf("pgcustodian is reading config from this config file: %s", viper.ConfigFileUsed())
 	}
-
-	rootCmd.PersistentFlags().VarP(&keySize, "aesKeySize", "a", `key size for AES encryption.`)
-	bindArgument("", "aesKeySize", rootCmd, []string{"PGC_AES_KEY_SIZE"}, 16)
-
-	rootCmd.PersistentFlags().StringP("backupFile", "b", "",
-		`path to backup file with secret encrypted with public key.`)
-	bindArgument("", "backupFile", rootCmd, []string{"PGC_ENCRYPTED_FILE"}, "")
-
-	rootCmd.PersistentFlags().StringP("encryptedFile", "f", "",
-		`path to file with decrypted version of data.`)
-	bindArgument("", "encryptedFile", rootCmd, []string{"PGC_ENCRYPTED_FILE"}, "")
-
-	rootCmd.PersistentFlags().StringP("publicKey", "k", confDir+"/public.pem",
-		`path where public key should be stored. Defaults to a tmp file when unset.`)
-	bindArgument("", "publicKey", rootCmd, []string{"PGC_PUBLIC_KEY"}, confDir+"/public.pem")
-
-	rootCmd.PersistentFlags().StringP("privateKey", "K", confDir+"/private.pem",
-		`path where private key should be stored. Defaults to a tmp file when unset.`)
-	bindArgument("", "privateKey", rootCmd, []string{"PGC_PRIVATE_KEY"}, confDir+"/private.pem")
-
-	rootCmd.PersistentFlags().StringP("storePath", "p", "",
-		`path to kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "storePath", rootCmd, []string{"PGC_STORE_PATH"}, "")
-
-	hostName, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-	rootCmd.PersistentFlags().StringP("secretPath", "P", "pgcustodian/"+hostName,
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretPath", rootCmd, []string{"PGC_SECRET_PATH"}, "pgcustodian/"+hostName)
-
-	rootCmd.PersistentFlags().StringP("secretIdFile", "s", confDir+"/secret-id",
-		`secret id for logging into vault.
-		Defaults are derived from PGC_SECRET_ID_FILE.`)
-	bindArgument("", "secretIdFile", rootCmd, []string{"PGC_SECRET_ID_FILE"}, confDir+"/secret-id")
-
-	rootCmd.PersistentFlags().StringP("secretKey", "S", "",
-		`path in kv1 or kv2 store where secrets are held.`)
-	bindArgument("", "secretKey", rootCmd, []string{"PGC_SECRET_KEY"}, "")
-
-	rootCmd.PersistentFlags().StringP("tokenFile", "T", confDir+"/token",
-		`tokenFile can be set to a path containing the token for logging into vault.
-		If token is set, tokenFile is unused.
-		If either tokenFile or token are set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN_FILE, and VAULT_TOKE_FILE in that order.`)
-	bindArgument("", "tokenFile", rootCmd, []string{"PGC_TOKEN_FILE", "VAULT_TOKEN_FILE"}, confDir+"/token")
-
-	rootCmd.PersistentFlags().StringP("token", "t", "",
-		`token for logging into vault.
-		If token is set, roleId and secretId are unused.
-		Defaults are derived from PGC_TOKEN, and VAULT_TOKEN in that order.`)
-	bindArgument("", "token", rootCmd, []string{"PGC_TOKEN", "VAULT_TOKEN"}, "")
-
-	rootCmd.PersistentFlags().StringP("roleId", "r", "",
-		`role id for logging into vault.
-		Defaults are derived from PGC_ROLE_ID.`)
-	bindArgument("", "roleId", rootCmd, []string{"PGC_ROLE_ID"}, "")
-
-	rootCmd.PersistentFlags().StringP("roleIdFile", "R", confDir+"/role-id",
-		`role id for logging into vault.
-		Defaults are derived from PGC_ROLE_ID_FILE.`)
-	bindArgument("", "roleIdFile", rootCmd, []string{}, confDir+"/role-id")
-
-	rootCmd.PersistentFlags().Uint8P("storeVersion", "V", 2,
-		`version of vault store.`)
-	bindArgument("", "storeVersion", rootCmd, []string{"PGC_STORE_VERSION"}, 2)
 
 	rootCmd.AddCommand(
 		encryptCommand(),
