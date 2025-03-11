@@ -5,7 +5,6 @@ import (
 	passwordGen "mannemsolutions/pgcustodian/pkg/pwgen"
 	"mannemsolutions/pgcustodian/pkg/shred"
 	"mannemsolutions/pgcustodian/pkg/symmetric"
-	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -25,14 +23,15 @@ const (
 )
 
 func cycleCommand() *cobra.Command {
+	var cycleArgs args
 	cycleCommand := &cobra.Command{
 		Use:   "cycle",
 		Short: "cycle encryption key and file",
 		Long:  `Use this command to generate a new key/file from previous key/file.`,
 		Run: func(cmd *cobra.Command, args []string) {
 
-			setVerbosity(viper.GetInt("verbose"))
-			encryptedFile := utils.ResolveHome(viper.GetString("encryptedFile"))
+			setVerbosity(cycleArgs.GetInt("verbose"))
+			encryptedFile := cycleArgs.GetString("encryptedFile")
 			if encryptedFile == "" {
 				log.Panic("parameter encryptedFile is mandatory for cycle")
 			}
@@ -59,9 +58,9 @@ func cycleCommand() *cobra.Command {
 			log.Infof("you can recover secrets with tmp recovery key in %s", tmpPrivateKeyPath)
 
 			//retrieve password from vault
-			client := setupClient()
-			secretKey := viper.GetString("secretKey")
-			secretPath := viper.GetString("secretPath")
+			client := cycleArgs.GetClient()
+			secretKey := cycleArgs.GetString("secretKey")
+			secretPath := cycleArgs.GetString("secretPath")
 			passwordFromVault, err := client.GetSecret(secretPath, secretKey)
 			if err != nil {
 				log.Panicf("failed to get secret from vault: %w", err)
@@ -77,8 +76,8 @@ func cycleCommand() *cobra.Command {
 			log.Infof("you can recover original password from %s", originalPasswordBackupFilePath)
 
 			//generate new password
-			pwLength := viper.GetUint("generatedPasswordLength")
-			pwChars := viper.GetString("generatedPasswordChars")
+			pwLength := cycleArgs.GetUint("generatedPasswordLength")
+			pwChars := cycleArgs.GetString("generatedPasswordChars")
 			newPassword := passwordGen.RandomPassword(pwLength, pwChars)
 			log.Info("successfully generated new password")
 
@@ -125,8 +124,8 @@ func cycleCommand() *cobra.Command {
 			log.Infof("new password updated in vault.")
 
 			//if public key is set, encrypt new password with public key and write to backup file
-			publicKeyPath := utils.ResolveHome(viper.GetString("publicKey"))
-			backupFilePath := utils.ResolveHome(viper.GetString("backupFile"))
+			publicKeyPath := cycleArgs.GetString("publicKeyPath")
+			backupFilePath := cycleArgs.GetString("backupFile")
 			if key, err := asymmetric.ReadPublicKeyFromFile(publicKeyPath); err != nil {
 				log.Errorf("failed to read private key: %w", err)
 				log.Info("password backup feature disabled")
@@ -137,7 +136,7 @@ func cycleCommand() *cobra.Command {
 			}
 
 			// shred tmp keys, files, etc.
-			if viper.GetBool("shred") {
+			if cycleArgs.GetBool("shred") {
 				shredConf := shred.Conf{Times: 1, Zeros: true, Remove: false}
 				if err = shredConf.Path(tmpDir); err != nil {
 					log.Panicf("failed to shred tmp backup and restore files, please manually clean folder: %w", err)
@@ -149,16 +148,15 @@ func cycleCommand() *cobra.Command {
 		},
 	}
 
-	cycleCommand.PersistentFlags().IntP("generatedPasswordLength", "l", 16,
-		`length for generated passwords.`)
-	bindArgument("", "generatedPasswordLength", cycleCommand, []string{"PGC_GENERATED_PASSWORD_LENGTH"}, 16)
-
-	cycleCommand.PersistentFlags().StringP("generatedPasswordChars", "C", passwordGen.AllBytes,
-		`character list for generating passwords.`)
-	bindArgument("", "generatedPasswordChars", cycleCommand, []string{"PGC_GENERATED_PASSWORD_CHARS"}, 16)
-
-	cycleCommand.PersistentFlags().BoolP("shred", "x", true, `shred the tmp files`)
-	bindArgument("", "shred", cycleCommand, []string{"PGC_SHRED"}, true)
-
+	cycleArgs = allArgs.commandArgs(cycleCommand, append(globalArgs,
+		"backupFile",
+		"encryptedFile",
+		"generatedPasswordChars",
+		"generatedPasswordLength",
+		"publicKeyPath",
+		"secretKey",
+		"secretPath",
+		"shred",
+	))
 	return cycleCommand
 }

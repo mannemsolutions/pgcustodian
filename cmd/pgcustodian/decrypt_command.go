@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"mannemsolutions/pgcustodian/pkg/asymmetric"
 	"mannemsolutions/pgcustodian/pkg/symmetric"
-	"mannemsolutions/pgcustodian/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func usePrivateKey() (string, error) {
-
-	privateKeyPath := utils.ResolveHome(viper.GetString("privateKey"))
+func usePrivateKey(decryptArgs args) (string, error) {
+	privateKeyPath := decryptArgs.GetString("privateKeyPath")
 	if privateKeyPath == "" {
 		return "", fmt.Errorf("no private key, I don't know the password and cannot decrypt the file")
 	}
@@ -22,8 +19,8 @@ func usePrivateKey() (string, error) {
 		return "", fmt.Errorf("reading private key failed, I don't know the password and cannot decrypt the file")
 	} else if decryptedPassword, err := asymmetric.DecryptFromFile(
 		key,
-		utils.ResolveHome(viper.GetString("backupFile")),
-		utils.ResolveHome(viper.GetString("encryptedFile")),
+		decryptArgs.GetString("backupFile"),
+		decryptArgs.GetString("encryptedFile"),
 	); err != nil {
 		return "", fmt.Errorf("decrypting password from backupfile failed, I don't know the password and cannot decrypt the file")
 	} else {
@@ -34,28 +31,29 @@ func usePrivateKey() (string, error) {
 }
 
 func decryptCommand() *cobra.Command {
+	var decryptArgs args
 	decryptCommand := &cobra.Command{
 		Use:   "decrypt",
 		Short: "decrypt file to stdout",
 		Long:  `Use this command to read from file, decrypt and write to a stdout.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var password string
-			setVerbosity(viper.GetInt("verbose"))
-			encryptedFile := utils.ResolveHome(viper.GetString("encryptedFile"))
+			setVerbosity(decryptArgs.GetInt("verbose"))
+			encryptedFile := decryptArgs.GetString("encryptedFile")
 			if encryptedFile == "" {
 				log.Panic("parameter encryptedFile is mandatory for decrypt")
 			}
-			client := setupClient()
-			secretKey := viper.GetString("secretKey")
-			secretPath := viper.GetString("secretPath")
+			client := decryptArgs.GetClient()
+			secretKey := decryptArgs.GetString("secretKey")
+			secretPath := decryptArgs.GetString("secretPath")
 			if err := client.Connect(); err != nil {
 				log.Errorf("connecting to Vault failed")
-				if password, err = usePrivateKey(); err != nil {
+				if password, err = usePrivateKey(decryptArgs); err != nil {
 					log.Panic(err)
 				}
 			} else if password, err = client.GetSecret(secretPath, secretKey); err != nil {
 				log.Errorf("retrieval from vault Vault failed: %w", err)
-				if password, err = usePrivateKey(); err != nil {
+				if password, err = usePrivateKey(decryptArgs); err != nil {
 					log.Panic(err)
 				}
 				data := map[string]string{
@@ -76,5 +74,12 @@ func decryptCommand() *cobra.Command {
 		},
 	}
 
+	decryptArgs = allArgs.commandArgs(decryptCommand, append(globalArgs,
+		"backupFile",
+		"encryptedFile",
+		"privateKeyPath",
+		"secretKey",
+		"secretPath",
+	))
 	return decryptCommand
 }
